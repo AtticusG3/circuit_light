@@ -2,6 +2,8 @@
 
 Custom Home Assistant integration for Circuit Light.
 
+![Circuit Light screenshot](docs/screenshot.png)
+
 ## Install (HACS)
 
 1. In Home Assistant, open **HACS**.
