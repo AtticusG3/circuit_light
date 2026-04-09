@@ -6,6 +6,7 @@ PLATFORMS = [Platform.LIGHT]
 CONF_NAME = "name"
 CONF_POWER_ENTITY = "power_entity"
 CONF_BULB_ENTITIES = "bulb_entities"
+CONF_HIDE_CHILD_ENTITIES = "hide_child_entities"
 
 DATA_KEY = DOMAIN
 

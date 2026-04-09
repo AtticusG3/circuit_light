@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import selector
 
 from .const import DOMAIN
-from .const import CONF_BULB_ENTITIES, CONF_NAME, CONF_POWER_ENTITY
+from .const import CONF_BULB_ENTITIES, CONF_HIDE_CHILD_ENTITIES, CONF_NAME, CONF_POWER_ENTITY
 from .api import ApiValidationError, async_validate_config
 
 class CircuitLightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -122,12 +122,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        super().__init__(config_entry)
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         """Manage the options."""
+        errors: dict[str, str] = {}
         if user_input is not None:
             # Apply changes to the config entry and reload so the entity picks up new targets.
             # Note: options flows normally only write options, but this integration's core
@@ -140,7 +141,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     bulb_entity_ids=list(user_input[CONF_BULB_ENTITIES]),
                 )
             except ApiValidationError as exc:
-                errors: dict[str, str] = {"base": str(exc)}
+                errors["base"] = str(exc)
             else:
                 self.hass.config_entries.async_update_entry(
                     self.config_entry,
@@ -151,6 +152,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_POWER_ENTITY: validated.power_entity_id,
                         CONF_BULB_ENTITIES: list(validated.bulb_entity_ids),
                     },
+                    options={
+                        **self.config_entry.options,
+                        CONF_HIDE_CHILD_ENTITIES: bool(
+                            user_input.get(CONF_HIDE_CHILD_ENTITIES, True)
+                        ),
+                    },
                 )
                 await self.hass.config_entries.async_reload(self.config_entry.entry_id)
                 return self.async_create_entry(title="", data={})
@@ -159,6 +166,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         current_name = self.config_entry.data.get(CONF_NAME, "")
         current_power_entity = self.config_entry.data.get(CONF_POWER_ENTITY, "")
         current_bulb_entities = self.config_entry.data.get(CONF_BULB_ENTITIES, [])
+        current_hide_children = self.config_entry.options.get(CONF_HIDE_CHILD_ENTITIES, True)
 
         data_schema = vol.Schema(
             {
@@ -173,7 +181,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         domain=["light"], multiple=True
                     )
                 ),
+                vol.Required(
+                    CONF_HIDE_CHILD_ENTITIES,
+                    default=bool(current_hide_children),
+                ): bool,
             }
         )
 
-        return self.async_show_form(step_id="init", data_schema=data_schema)
+        return self.async_show_form(step_id="init", data_schema=data_schema, errors=errors)

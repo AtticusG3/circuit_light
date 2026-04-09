@@ -28,7 +28,8 @@
         "data": {
           "name": "Name",
           "power_entity": "Power Entity",
-          "bulb_entities": "Bulb Entities"
+          "bulb_entities": "Bulb Entities",
+          "hide_child_entities": "Hide child entities"
         }
       }
     }

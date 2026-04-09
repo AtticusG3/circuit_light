@@ -7,6 +7,8 @@ from typing import Any
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_HS_COLOR,
+    ATTR_RGB_COLOR,
+    ATTR_XY_COLOR,
     ColorMode,
     LightEntityFeature,
 )
@@ -152,6 +154,91 @@ def snapshot_color_temp(data: CircuitLightSnapshot | None) -> float | None:
             # Convert kelvin -> mireds for the legacy `color_temp` property.
             values.append(1_000_000.0 / float(ct_kelvin))
     return None if not values else sum(values) / len(values)
+
+
+def snapshot_color_temp_kelvin(data: CircuitLightSnapshot | None) -> int | None:
+    """Return average color temperature in kelvin, if available."""
+    if data is None:
+        return None
+    values: list[float] = []
+    for bulb in data.bulbs:
+        if bulb.state in (None, STATE_UNAVAILABLE):
+            continue
+        ct_kelvin = bulb.attributes.get(ATTR_COLOR_TEMP_KELVIN)
+        if isinstance(ct_kelvin, (int, float)) and ct_kelvin > 0:
+            values.append(float(ct_kelvin))
+            continue
+        ct_mireds = bulb.attributes.get(ATTR_COLOR_TEMP_MIREDS)
+        if isinstance(ct_mireds, (int, float)) and ct_mireds > 0:
+            values.append(1_000_000.0 / float(ct_mireds))
+    return None if not values else round(sum(values) / len(values))
+
+
+def snapshot_min_color_temp_kelvin(data: CircuitLightSnapshot | None) -> int | None:
+    if data is None:
+        return None
+    values: list[int] = []
+    for bulb in data.bulbs:
+        if bulb.state in (None, STATE_UNAVAILABLE):
+            continue
+        v = bulb.attributes.get("min_color_temp_kelvin")
+        if isinstance(v, int):
+            values.append(v)
+    return None if not values else min(values)
+
+
+def snapshot_max_color_temp_kelvin(data: CircuitLightSnapshot | None) -> int | None:
+    if data is None:
+        return None
+    values: list[int] = []
+    for bulb in data.bulbs:
+        if bulb.state in (None, STATE_UNAVAILABLE):
+            continue
+        v = bulb.attributes.get("max_color_temp_kelvin")
+        if isinstance(v, int):
+            values.append(v)
+    return None if not values else max(values)
+
+
+def snapshot_xy_color(data: CircuitLightSnapshot | None) -> tuple[float, float] | None:
+    if data is None:
+        return None
+    x: list[float] = []
+    y: list[float] = []
+    for bulb in data.bulbs:
+        if bulb.state in (None, STATE_UNAVAILABLE):
+            continue
+        xy = bulb.attributes.get(ATTR_XY_COLOR)
+        if (
+            isinstance(xy, (list, tuple))
+            and len(xy) == 2
+            and isinstance(xy[0], (int, float))
+            and isinstance(xy[1], (int, float))
+        ):
+            x.append(float(xy[0]))
+            y.append(float(xy[1]))
+    return None if not x else (sum(x) / len(x), sum(y) / len(y))
+
+
+def snapshot_rgb_color(data: CircuitLightSnapshot | None) -> tuple[int, int, int] | None:
+    if data is None:
+        return None
+    r: list[int] = []
+    g: list[int] = []
+    b: list[int] = []
+    for bulb in data.bulbs:
+        if bulb.state in (None, STATE_UNAVAILABLE):
+            continue
+        rgb = bulb.attributes.get(ATTR_RGB_COLOR)
+        if (
+            isinstance(rgb, (list, tuple))
+            and len(rgb) == 3
+            and all(isinstance(v, int) for v in rgb)
+        ):
+            r.append(rgb[0])
+            g.append(rgb[1])
+            b.append(rgb[2])
+    return None if not r else (round(sum(r) / len(r)), round(sum(g) / len(g)), round(sum(b) / len(b)))
 
 
 def snapshot_hs_color(data: CircuitLightSnapshot | None) -> tuple[float, float] | None:
