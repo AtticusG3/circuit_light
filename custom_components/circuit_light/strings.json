@@ -1,0 +1,21 @@
+{
+  "name": "Name",
+  "power_entity": "Power Entity",
+  "bulb_entities": "Bulb Entities",
+  "config_flow_title": "Circuit Light",
+  "config_flow_description": "Combine a relay/switch with one or more smart bulbs into a unified light entity",
+  "power_entity_selector": {
+    "entity": {
+      "domain": ["switch", "light"]
+    }
+  },
+  "bulb_entities_selector": {
+    "entity": {
+      "domain": ["light"],
+      "multiple": true
+    }
+  },
+  "bulb_order_note": "Note: Bulb order matters for sequential effects (Rainbow Chase, Colour Wipe)",
+  "options_flow_title": "Circuit Light Options",
+  "options_flow_description": "Edit the Circuit Light configuration"
+}
