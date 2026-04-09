@@ -4,7 +4,7 @@ import asyncio
 import random
 from typing import Any
 
-from homeassistant.components.light import ColorMode
+from homeassistant.const import STATE_UNAVAILABLE
 
 
 EFFECT_LIST = [
@@ -30,9 +30,9 @@ async def effect_christmas_lights(entity: Any) -> None:
     offset = 0
 
     while True:
-        for i, entity_id in enumerate(entity._bulb_entities):
+        for i, entity_id in enumerate(entity.bulb_entities):
             state = entity.hass.states.get(entity_id)
-            if state is None or state.state == entity.hass.const.STATE_UNAVAILABLE:
+            if state is None or state.state == STATE_UNAVAILABLE:
                 continue
 
             color_index = (i + offset) % len(colors)
@@ -57,9 +57,9 @@ async def effect_colour_cycle(entity: Any) -> None:
     hue = 0
 
     while True:
-        for entity_id in entity._bulb_entities:
+        for entity_id in entity.bulb_entities:
             state = entity.hass.states.get(entity_id)
-            if state is None or state.state == entity.hass.const.STATE_UNAVAILABLE:
+            if state is None or state.state == STATE_UNAVAILABLE:
                 continue
 
             await entity.hass.services.async_call(
@@ -78,16 +78,16 @@ async def effect_colour_cycle(entity: Any) -> None:
 
 async def effect_rainbow_chase(entity: Any) -> None:
     """Rainbow Chase effect."""
-    bulb_count = len(entity._bulb_entities)
+    bulb_count = len(entity.bulb_entities)
     if bulb_count == 0:
         return
 
     offset = 0
 
     while True:
-        for i, entity_id in enumerate(entity._bulb_entities):
+        for i, entity_id in enumerate(entity.bulb_entities):
             state = entity.hass.states.get(entity_id)
-            if state is None or state.state == entity.hass.const.STATE_UNAVAILABLE:
+            if state is None or state.state == STATE_UNAVAILABLE:
                 continue
 
             # Distribute hues evenly across bulbs
@@ -112,16 +112,16 @@ async def effect_colour_wipe(entity: Any) -> None:
     colors = [0, 120, 240]  # Red, Green, Blue
     color_index = 0
     position = 0
-    bulb_count = len(entity._bulb_entities)
+    bulb_count = len(entity.bulb_entities)
 
     if bulb_count == 0:
         return
 
     while True:
         # Turn off all bulbs first
-        for entity_id in entity._bulb_entities:
+        for entity_id in entity.bulb_entities:
             state = entity.hass.states.get(entity_id)
-            if state is None or state.state == entity.hass.const.STATE_UNAVAILABLE:
+            if state is None or state.state == STATE_UNAVAILABLE:
                 continue
 
             await entity.hass.services.async_call(
@@ -133,9 +133,9 @@ async def effect_colour_wipe(entity: Any) -> None:
 
         # Turn on current bulb with current color
         if position < bulb_count:
-            entity_id = entity._bulb_entities[position]
+            entity_id = entity.bulb_entities[position]
             state = entity.hass.states.get(entity_id)
-            if state is not None and state.state != entity.hass.const.STATE_UNAVAILABLE:
+            if state is not None and state.state != STATE_UNAVAILABLE:
                 await entity.hass.services.async_call(
                     "light",
                     "turn_on",
@@ -158,9 +158,9 @@ async def effect_strobe(entity: Any) -> None:
     """Strobe effect."""
     while True:
         # Turn on all bulbs white at full brightness
-        for entity_id in entity._bulb_entities:
+        for entity_id in entity.bulb_entities:
             state = entity.hass.states.get(entity_id)
-            if state is None or state.state == entity.hass.const.STATE_UNAVAILABLE:
+            if state is None or state.state == STATE_UNAVAILABLE:
                 continue
 
             await entity.hass.services.async_call(
@@ -177,9 +177,9 @@ async def effect_strobe(entity: Any) -> None:
         await asyncio.sleep(0.1)  # 100ms on
 
         # Turn off all bulbs
-        for entity_id in entity._bulb_entities:
+        for entity_id in entity.bulb_entities:
             state = entity.hass.states.get(entity_id)
-            if state is None or state.state == entity.hass.const.STATE_UNAVAILABLE:
+            if state is None or state.state == STATE_UNAVAILABLE:
                 continue
 
             await entity.hass.services.async_call(
@@ -195,9 +195,9 @@ async def effect_strobe(entity: Any) -> None:
 async def effect_candle_flicker(entity: Any) -> None:
     """Candle Flicker effect."""
     while True:
-        for entity_id in entity._bulb_entities:
+        for entity_id in entity.bulb_entities:
             state = entity.hass.states.get(entity_id)
-            if state is None or state.state == entity.hass.const.STATE_UNAVAILABLE:
+            if state is None or state.state == STATE_UNAVAILABLE:
                 continue
 
             # Warm white color temperature range (370-450 mireds)
@@ -223,7 +223,7 @@ async def effect_candle_flicker(entity: Any) -> None:
 
 async def effect_police(entity: Any) -> None:
     """Police effect."""
-    bulb_count = len(entity._bulb_entities)
+    bulb_count = len(entity.bulb_entities)
     if bulb_count == 0:
         return
 
@@ -231,9 +231,9 @@ async def effect_police(entity: Any) -> None:
 
     while True:
         # First half red, second half blue
-        for i, entity_id in enumerate(entity._bulb_entities):
+        for i, entity_id in enumerate(entity.bulb_entities):
             state = entity.hass.states.get(entity_id)
-            if state is None or state.state == entity.hass.const.STATE_UNAVAILABLE:
+            if state is None or state.state == STATE_UNAVAILABLE:
                 continue
 
             if i < half:
@@ -256,9 +256,9 @@ async def effect_police(entity: Any) -> None:
         await asyncio.sleep(0.15)  # 150ms
 
         # Swap colors
-        for i, entity_id in enumerate(entity._bulb_entities):
+        for i, entity_id in enumerate(entity.bulb_entities):
             state = entity.hass.states.get(entity_id)
-            if state is None or state.state == entity.hass.const.STATE_UNAVAILABLE:
+            if state is None or state.state == STATE_UNAVAILABLE:
                 continue
 
             if i < half:
@@ -290,9 +290,9 @@ async def effect_warm_fade(entity: Any) -> None:
     increasing = True
 
     while True:
-        for entity_id in entity._bulb_entities:
+        for entity_id in entity.bulb_entities:
             state = entity.hass.states.get(entity_id)
-            if state is None or state.state == entity.hass.const.STATE_UNAVAILABLE:
+            if state is None or state.state == STATE_UNAVAILABLE:
                 continue
 
             await entity.hass.services.async_call(
