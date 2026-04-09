@@ -7,6 +7,7 @@ from typing import Any
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_EFFECT,
+    ATTR_HS_COLOR,
     ATTR_TRANSITION,
     ColorMode,
     LightEntity,
@@ -21,7 +22,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import CONF_NAME, DATA_KEY, DOMAIN
+from .const import (
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_COLOR_TEMP_MIREDS,
+    CONF_NAME,
+    DATA_KEY,
+    DOMAIN,
+)
 from .effects import EFFECT_LIST
 from .coordinator import (
     CircuitLightCoordinator,
@@ -193,7 +200,13 @@ class CircuitLight(CoordinatorEntity[CircuitLightCoordinator], LightEntity):
         # Handle color/brightness/transition
         if any(
             key in kwargs
-            for key in (ATTR_BRIGHTNESS, ATTR_COLOR_TEMP, ATTR_HS_COLOR, ATTR_TRANSITION)
+            for key in (
+                ATTR_BRIGHTNESS,
+                ATTR_COLOR_TEMP_MIREDS,
+                ATTR_COLOR_TEMP_KELVIN,
+                ATTR_HS_COLOR,
+                ATTR_TRANSITION,
+            )
         ):
             if self._effect_task:
                 self._effect_task.cancel()

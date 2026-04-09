@@ -1,0 +1,199 @@
+{
+  "version": "1.0.0",
+  "target_quality_scale": "platinum",
+  "rules": [
+    {
+      "id": "R-ARCH-001",
+      "severity": "error",
+      "phase": "generation",
+      "category": "architecture",
+      "description": "Integration must be config-entry based and implement async_setup_entry (no YAML-only integrations).",
+      "enforcement": {
+        "must": ["Implement async_setup_entry", "Use config entries as the primary configuration model"],
+        "reject_if": ["Only async_setup/ YAML config supported", "YAML platform setup without config entries"]
+      }
+    },
+    {
+      "id": "R-ARCH-002",
+      "severity": "error",
+      "phase": "generation",
+      "category": "architecture",
+      "description": "Enforce separation of concerns: API client, coordinator, and entities.",
+      "enforcement": {
+        "must": ["api.py contains only I/O and mapping", "coordinator.py owns refresh/state", "platform files define thin entities"],
+        "reject_if": ["Entities call the API directly", "Coordinator performs entity registry writes during updates"]
+      }
+    },
+    {
+      "id": "R-ASYNC-001",
+      "severity": "error",
+      "phase": "post_generation",
+      "category": "async",
+      "description": "No blocking I/O in async context.",
+      "enforcement": {
+        "must": ["Use HA aiohttp session for HTTP", "Use async sleep and async file operations only when needed"],
+        "reject_if": ["requests used", "time.sleep used", "blocking socket/file I/O in async code"]
+      }
+    },
+    {
+      "id": "R-CFG-001",
+      "severity": "error",
+      "phase": "generation",
+      "category": "config_flow",
+      "description": "Config flow is required and must validate connectivity/credentials.",
+      "enforcement": {
+        "must": ["Implement ConfigFlow", "Validate input by calling API client in the flow", "Handle connection vs auth errors distinctly"],
+        "reject_if": ["No config_flow.py", "Config flow accepts input without validation"]
+      }
+    },
+    {
+      "id": "R-CFG-002",
+      "severity": "error",
+      "phase": "generation",
+      "category": "config_flow",
+      "description": "Reauth support is required when auth can fail after setup.",
+      "enforcement": {
+        "must": ["Handle reauth step", "Surface errors in UI and allow updating credentials"],
+        "reject_if": ["Auth errors only logged with no reauth path"]
+      }
+    },
+    {
+      "id": "R-CFG-003",
+      "severity": "warn",
+      "phase": "pre_generation",
+      "category": "config_flow",
+      "description": "Options flow required when there are meaningful runtime options (e.g., scan interval, units, feature toggles).",
+      "enforcement": {
+        "must": ["Implement OptionsFlow when options exist"],
+        "reject_if": [],
+        "notes": ["If there are no options, omit options flow deliberately."]
+      }
+    },
+    {
+      "id": "R-COORD-001",
+      "severity": "error",
+      "phase": "generation",
+      "category": "architecture",
+      "description": "If polling/periodic refresh is used, DataUpdateCoordinator is mandatory.",
+      "enforcement": {
+        "must": ["Use DataUpdateCoordinator for periodic updates", "Entities must use CoordinatorEntity"],
+        "reject_if": ["Entities implement polling themselves", "async_update in each entity calls API"]
+      }
+    },
+    {
+      "id": "R-ENT-001",
+      "severity": "error",
+      "phase": "post_generation",
+      "category": "entities",
+      "description": "All entities must have stable unique_id values.",
+      "enforcement": {
+        "must": ["Set unique_id on every entity", "unique_id must be stable across restarts"],
+        "reject_if": ["unique_id missing", "unique_id derived from mutable display names"]
+      }
+    },
+    {
+      "id": "R-REG-001",
+      "severity": "error",
+      "phase": "post_generation",
+      "category": "registries",
+      "description": "Device registry and entity registry usage must be correct and stable.",
+      "enforcement": {
+        "must": ["Provide device_info with stable identifiers when device exists", "Avoid dynamic entity churn"],
+        "reject_if": ["No device identifiers for device-backed entities", "Entity ids change across updates"]
+      }
+    },
+    {
+      "id": "R-ERR-001",
+      "severity": "error",
+      "phase": "generation",
+      "category": "error_handling",
+      "description": "API layer must define explicit exception taxonomy and never leak secrets.",
+      "enforcement": {
+        "must": ["Define ApiAuthError/ApiConnectionError/ApiRateLimitError/ApiError", "Redact tokens/passwords from exceptions/logging"],
+        "reject_if": ["Bare Exception used for control flow", "Credentials printed or returned in diagnostics"]
+      }
+    },
+    {
+      "id": "R-ERR-002",
+      "severity": "error",
+      "phase": "post_generation",
+      "category": "error_handling",
+      "description": "Coordinator must translate failures into UpdateFailed and trigger reauth for auth errors.",
+      "enforcement": {
+        "must": ["Raise UpdateFailed on transient refresh errors", "Initiate reauth when auth invalidated"],
+        "reject_if": ["Coordinator swallows exceptions silently", "Entities crash on missing coordinator data"]
+      }
+    },
+    {
+      "id": "R-PERF-001",
+      "severity": "error",
+      "phase": "post_generation",
+      "category": "performance",
+      "description": "No I/O in entity properties; coordinator must batch data retrieval.",
+      "enforcement": {
+        "must": ["Entity properties read cached coordinator data only", "Coordinator fetches all needed data per update"],
+        "reject_if": ["Network calls in state properties", "Multiple redundant API calls per refresh"]
+      }
+    },
+    {
+      "id": "R-MAN-001",
+      "severity": "error",
+      "phase": "post_generation",
+      "category": "manifest",
+      "description": "manifest.json must be valid and consistent with the code.",
+      "enforcement": {
+        "must": ["domain/name/version present", "requirements only when necessary", "config_flow true for config entries"],
+        "reject_if": ["manifest missing required fields", "domain mismatch between manifest and code"]
+      }
+    },
+    {
+      "id": "R-I18N-001",
+      "severity": "error",
+      "phase": "post_generation",
+      "category": "i18n",
+      "description": "strings.json and translations/en.json must exist and match config flow strings.",
+      "enforcement": {
+        "must": ["Provide strings.json", "Provide translations/en.json", "No hardcoded UI strings in config flow"],
+        "reject_if": ["Missing translations", "UI text embedded directly in code"]
+      }
+    },
+    {
+      "id": "R-DIAG-001",
+      "severity": "error",
+      "phase": "post_generation",
+      "category": "diagnostics",
+      "description": "Diagnostics must redact secrets and avoid leaking sensitive identifiers.",
+      "enforcement": {
+        "must": ["Implement diagnostics.py", "Redact tokens/passwords", "Use async_redact_data where appropriate"],
+        "reject_if": ["Diagnostics returns raw secrets", "Diagnostics performs network I/O"]
+      }
+    },
+    {
+      "id": "R-TESTS-001",
+      "severity": "error",
+      "phase": "post_generation",
+      "category": "tests",
+      "description": "pytest-based tests are mandatory and must cover config flow, coordinator, and entity updates.",
+      "enforcement": {
+        "must": [
+          "Use pytest-homeassistant-custom-component",
+          "Test config flow success and error paths",
+          "Test coordinator refresh success and failure",
+          "Test entity states reflect coordinator data"
+        ],
+        "reject_if": ["No tests/ directory", "Tests hit the network", "Only trivial smoke tests"]
+      }
+    },
+    {
+      "id": "R-ANTI-001",
+      "severity": "error",
+      "phase": "post_generation",
+      "category": "anti_slop",
+      "description": "No placeholders, TODOs, or partial implementations.",
+      "enforcement": {
+        "must": ["All files fully implemented", "No placeholder comments"],
+        "reject_if": ["TODO/TBD/IMPLEMENT ME present", "pass used as a stub for required behavior"]
+      }
+    }
+  ]
+}

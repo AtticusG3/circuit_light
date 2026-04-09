@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
-    ATTR_COLOR_TEMP,
     ATTR_HS_COLOR,
     ColorMode,
     LightEntityFeature,
@@ -15,7 +15,15 @@ from homeassistant.core import HomeAssistant, State, callback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import CONF_BULB_ENTITIES, CONF_POWER_ENTITY, DOMAIN
+from .const import (
+    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_COLOR_TEMP_MIREDS,
+    CONF_BULB_ENTITIES,
+    CONF_POWER_ENTITY,
+    DOMAIN,
+)
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,7 +45,7 @@ class CircuitLightCoordinator(DataUpdateCoordinator[CircuitLightSnapshot]):
     """Push-updated coordinator that snapshots underlying entity states."""
 
     def __init__(self, hass: HomeAssistant, *, entry_id: str, entry_data: dict[str, Any]) -> None:
-        super().__init__(hass, logger=None, name=f"{DOMAIN}-{entry_id}")
+        super().__init__(hass, logger=_LOGGER, name=f"{DOMAIN}-{entry_id}")
         self._power_entity_id: str = entry_data[CONF_POWER_ENTITY]
         self._bulb_entity_ids: tuple[str, ...] = tuple(entry_data[CONF_BULB_ENTITIES])
         self._unsub: Any | None = None
@@ -135,9 +143,14 @@ def snapshot_color_temp(data: CircuitLightSnapshot | None) -> float | None:
     for bulb in data.bulbs:
         if bulb.state in (None, STATE_UNAVAILABLE):
             continue
-        ct = bulb.attributes.get(ATTR_COLOR_TEMP)
-        if isinstance(ct, (int, float)):
-            values.append(float(ct))
+        ct_mireds = bulb.attributes.get(ATTR_COLOR_TEMP_MIREDS)
+        if isinstance(ct_mireds, (int, float)):
+            values.append(float(ct_mireds))
+            continue
+        ct_kelvin = bulb.attributes.get(ATTR_COLOR_TEMP_KELVIN)
+        if isinstance(ct_kelvin, (int, float)) and ct_kelvin > 0:
+            # Convert kelvin -> mireds for the legacy `color_temp` property.
+            values.append(1_000_000.0 / float(ct_kelvin))
     return None if not values else sum(values) / len(values)
 
 
