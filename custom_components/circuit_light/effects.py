@@ -192,8 +192,8 @@ async def effect_candle_flicker(hass: HomeAssistant, bulb_entity_ids: tuple[str,
             continue
 
         for entity_id in bulbs:
-            # Warm white color temperature range (370-450 mireds)
-            color_temp = random.randint(370, 450)
+            # Warm white color temperature range (222-270 kelvin -> 370-450 mireds)
+            color_temp_kelvin = random.randint(222, 270)
             # Random brightness variation
             brightness = random.randint(100, 255)
             # Random interval
@@ -204,7 +204,7 @@ async def effect_candle_flicker(hass: HomeAssistant, bulb_entity_ids: tuple[str,
                 "turn_on",
                 {
                     "entity_id": entity_id,
-                    "color_temp": color_temp,
+                    "color_temp_kelvin": color_temp_kelvin,
                     "brightness": brightness,
                 },
                 blocking=False,
@@ -268,10 +268,11 @@ async def effect_police(hass: HomeAssistant, bulb_entity_ids: tuple[str, ...]) -
 
 async def effect_warm_fade(hass: HomeAssistant, bulb_entity_ids: tuple[str, ...]) -> None:
     """Warm Fade effect."""
-    # Color temperature range: warm white (450 mireds) to cool white (153 mireds)
-    min_temp = 153  # Cool white
-    max_temp = 450  # Warm white
-    current_temp = min_temp
+    # Color temperature range: cool white (153 mireds -> ~6536K) to warm white (450 mireds -> ~2222K)
+    # Convert to kelvin range: ~2222K to ~6536K
+    min_temp_kelvin = 2222  # Warm white
+    max_temp_kelvin = 6536  # Cool white
+    current_temp = min_temp_kelvin
     increasing = True
 
     while True:
@@ -286,18 +287,18 @@ async def effect_warm_fade(hass: HomeAssistant, bulb_entity_ids: tuple[str, ...]
                 "turn_on",
                 {
                     "entity_id": entity_id,
-                    "color_temp": current_temp,
+                    "color_temp_kelvin": current_temp,
                 },
                 blocking=False,
             )
 
         if increasing:
             current_temp += 5
-            if current_temp >= max_temp:
+            if current_temp >= max_temp_kelvin:
                 increasing = False
         else:
             current_temp -= 5
-            if current_temp <= min_temp:
+            if current_temp <= min_temp_kelvin:
                 increasing = True
 
         await asyncio.sleep(40)  # 4000ms per direction / 100 steps = 40ms per step

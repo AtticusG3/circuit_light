@@ -75,13 +75,17 @@ class CircuitLight(CoordinatorEntity[CircuitLightCoordinator], LightEntity):
         self._attr_effect = None
         self._effect_task: asyncio.Task[None] | None = None
 
-    def _cancel_effect_task(self) -> None:
-        """Cancel an in-flight effect without blocking service calls."""
+    async def _cancel_effect_task(self) -> None:
+        """Cancel an in-flight effect and wait for it to stop."""
         task = self._effect_task
         if task is None:
             return
         self._effect_task = None
         task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
     @property
     def power_entity_id(self) -> str:
@@ -96,12 +100,7 @@ class CircuitLight(CoordinatorEntity[CircuitLightCoordinator], LightEntity):
     async def async_will_remove_from_hass(self) -> None:
         """Run when entity will be removed from hass."""
         await super().async_will_remove_from_hass()
-        if self._effect_task:
-            self._effect_task.cancel()
-            try:
-                await self._effect_task
-            except asyncio.CancelledError:
-                pass
+        await self._cancel_effect_task()
 
     @property
     def name(self) -> str | None:
@@ -151,6 +150,10 @@ class CircuitLight(CoordinatorEntity[CircuitLightCoordinator], LightEntity):
     @property
     def color_mode(self) -> ColorMode | str:
         """Return the color mode of the light."""
+        # If an effect is active, return a more restrictive color mode
+        if self._attr_effect is not None and self._attr_effect != EFFECT_OFF:
+            # During effects, we don't support color adjustments through normal interfaces
+            return ColorMode.ONOFF
         return snapshot_color_mode(self.coordinator.data)
 
     @property
@@ -166,11 +169,14 @@ class CircuitLight(CoordinatorEntity[CircuitLightCoordinator], LightEntity):
     @property
     def effect_list(self) -> list[str]:
         """Return the list of supported effects."""
-        return [EFFECT_OFF, *EFFECT_LIST]
+        return list(EFFECT_LIST)
 
     @property
     def effect(self) -> str | None:
         """Return the current effect."""
+        if self._attr_effect is None:
+            # Return EFFECT_OFF when no effect is active but effects are supported
+            return EFFECT_OFF if self.effect_list else None
         return self._attr_effect
 
     @property
@@ -195,7 +201,7 @@ class CircuitLight(CoordinatorEntity[CircuitLightCoordinator], LightEntity):
         # Handle effect
         if ATTR_EFFECT in kwargs and kwargs[ATTR_EFFECT] is not None:
             effect_name = kwargs[ATTR_EFFECT]
-            self._cancel_effect_task()
+            await self._cancel_effect_task()
             if effect_name == EFFECT_OFF:
                 self._attr_effect = None
                 self.async_write_ha_state()
@@ -222,7 +228,7 @@ class CircuitLight(CoordinatorEntity[CircuitLightCoordinator], LightEntity):
                 ATTR_XY_COLOR,
             )
         ):
-            self._cancel_effect_task()
+            await self._cancel_effect_task()
             self._attr_effect = None
             # Turn on bulbs with provided kwargs, normalized to HA's current service schema.
             service_data = filter_turn_on_params(self, kwargs)
@@ -236,7 +242,7 @@ class CircuitLight(CoordinatorEntity[CircuitLightCoordinator], LightEntity):
             return
 
         # Bare turn on (no kwargs)
-        self._cancel_effect_task()
+        await self._cancel_effect_task()
         self._attr_effect = None
         # Turn on bulbs. Avoid persisting behavior here; underlying lights keep their own last state.
         await self.hass.services.async_call(
@@ -250,7 +256,7 @@ class CircuitLight(CoordinatorEntity[CircuitLightCoordinator], LightEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the light off."""
         # Cancel any active effect
-        self._cancel_effect_task()
+        await self._cancel_effect_task()
         self._attr_effect = None
 
         # Turn off power entity only
