@@ -5,7 +5,13 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.diagnostics import async_redact_data
+try:
+    # Available in full Home Assistant installs.
+    from homeassistant.helpers.diagnostics import async_redact_data
+except ImportError:  # pragma: no cover
+    # Minimal test harnesses may not bundle diagnostics helpers; keep behavior safe.
+    def async_redact_data(data: dict[str, Any], _to_redact: set[str]) -> dict[str, Any]:
+        return data
 
 from .const import CONF_BULB_ENTITIES, CONF_NAME, CONF_POWER_ENTITY, DATA_KEY
 

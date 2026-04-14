@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
+from homeassistant.util.color import color_temperature_mired_to_kelvin
 
 
 EFFECT_LIST = [
@@ -192,8 +193,9 @@ async def effect_candle_flicker(hass: HomeAssistant, bulb_entity_ids: tuple[str,
             continue
 
         for entity_id in bulbs:
-            # Warm white color temperature range (370-450 mireds)
-            color_temp = random.randint(370, 450)
+            # Warm white range (370-450 mireds), expressed in kelvin for HA service schema.
+            mired = random.randint(370, 450)
+            color_temp_kelvin = color_temperature_mired_to_kelvin(mired)
             # Random brightness variation
             brightness = random.randint(100, 255)
             # Random interval
@@ -204,7 +206,7 @@ async def effect_candle_flicker(hass: HomeAssistant, bulb_entity_ids: tuple[str,
                 "turn_on",
                 {
                     "entity_id": entity_id,
-                    "color_temp": color_temp,
+                    "color_temp_kelvin": color_temp_kelvin,
                     "brightness": brightness,
                 },
                 blocking=False,
@@ -268,10 +270,13 @@ async def effect_police(hass: HomeAssistant, bulb_entity_ids: tuple[str, ...]) -
 
 async def effect_warm_fade(hass: HomeAssistant, bulb_entity_ids: tuple[str, ...]) -> None:
     """Warm Fade effect."""
-    # Color temperature range: warm white (450 mireds) to cool white (153 mireds)
-    min_temp = 153  # Cool white
-    max_temp = 450  # Warm white
-    current_temp = min_temp
+    # Color temperature range: cool white (153 mireds) to warm white (450 mireds),
+    # expressed in kelvin for HA service schema.
+    min_mired = 153  # Cool white
+    max_mired = 450  # Warm white
+    min_kelvin = color_temperature_mired_to_kelvin(max_mired)
+    max_kelvin = color_temperature_mired_to_kelvin(min_mired)
+    current_kelvin = max_kelvin
     increasing = True
 
     while True:
@@ -286,18 +291,18 @@ async def effect_warm_fade(hass: HomeAssistant, bulb_entity_ids: tuple[str, ...]
                 "turn_on",
                 {
                     "entity_id": entity_id,
-                    "color_temp": current_temp,
+                    "color_temp_kelvin": current_kelvin,
                 },
                 blocking=False,
             )
 
         if increasing:
-            current_temp += 5
-            if current_temp >= max_temp:
+            current_kelvin += 50
+            if current_kelvin >= max_kelvin:
                 increasing = False
         else:
-            current_temp -= 5
-            if current_temp <= min_temp:
+            current_kelvin -= 50
+            if current_kelvin <= min_kelvin:
                 increasing = True
 
         await asyncio.sleep(40)  # 4000ms per direction / 100 steps = 40ms per step
