@@ -58,7 +58,7 @@ def _apply_child_hidden_state(hass: HomeAssistant, entry: ConfigEntry, *, hide: 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Circuit Light from a config entry."""
-    coordinator = CircuitLightCoordinator(hass, entry_id=entry.entry_id, entry_data=entry.data)
+    coordinator = CircuitLightCoordinator(hass, entry=entry, entry_data=entry.data)
     await coordinator.async_config_entry_first_refresh()
     hass.data.setdefault(DATA_KEY, {})[entry.entry_id] = CircuitLightEntryData(
         coordinator=coordinator
@@ -75,8 +75,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload a config entry."""
-    await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry)
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

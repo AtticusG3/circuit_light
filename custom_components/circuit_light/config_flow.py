@@ -72,7 +72,7 @@ class CircuitLightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
         """Create the options flow."""
-        return OptionsFlowHandler(config_entry)
+        return OptionsFlowHandler()
 
     async def async_step_reauth(self, _entry_data: dict[str, Any]) -> config_entries.FlowResult:
         self._reauth_entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
@@ -120,10 +120,6 @@ class CircuitLightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle an options flow for Circuit Light."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        super().__init__(config_entry)
-
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
@@ -143,6 +139,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             except ApiValidationError as exc:
                 errors["base"] = str(exc)
             else:
+                new_options = {
+                    **self.config_entry.options,
+                    CONF_HIDE_CHILD_ENTITIES: bool(
+                        user_input.get(CONF_HIDE_CHILD_ENTITIES, True)
+                    ),
+                }
                 self.hass.config_entries.async_update_entry(
                     self.config_entry,
                     title=validated.name,
@@ -152,15 +154,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_POWER_ENTITY: validated.power_entity_id,
                         CONF_BULB_ENTITIES: list(validated.bulb_entity_ids),
                     },
-                    options={
-                        **self.config_entry.options,
-                        CONF_HIDE_CHILD_ENTITIES: bool(
-                            user_input.get(CONF_HIDE_CHILD_ENTITIES, True)
-                        ),
-                    },
+                    options=self.config_entry.options,
                 )
                 await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-                return self.async_create_entry(title="", data={})
+                return self.async_create_entry(title="", data=new_options)
 
         # Get current values from config entry
         current_name = self.config_entry.data.get(CONF_NAME, "")

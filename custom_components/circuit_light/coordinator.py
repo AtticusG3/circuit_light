@@ -14,6 +14,7 @@ from homeassistant.components.light import (
 )
 from homeassistant.const import STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant, State, callback
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -46,8 +47,14 @@ class CircuitLightSnapshot:
 class CircuitLightCoordinator(DataUpdateCoordinator[CircuitLightSnapshot]):
     """Push-updated coordinator that snapshots underlying entity states."""
 
-    def __init__(self, hass: HomeAssistant, *, entry_id: str, entry_data: dict[str, Any]) -> None:
-        super().__init__(hass, logger=_LOGGER, name=f"{DOMAIN}-{entry_id}")
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        *,
+        entry: ConfigEntry,
+        entry_data: dict[str, Any],
+    ) -> None:
+        super().__init__(hass, logger=_LOGGER, name=f"{DOMAIN}-{entry.entry_id}", config_entry=entry)
         self._power_entity_id: str = entry_data[CONF_POWER_ENTITY]
         self._bulb_entity_ids: tuple[str, ...] = tuple(entry_data[CONF_BULB_ENTITIES])
         self._unsub: Any | None = None
